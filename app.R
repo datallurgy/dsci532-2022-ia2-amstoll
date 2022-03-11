@@ -1,7 +1,10 @@
 library(dash)
 library(readr)
 library(dplyr)
+library(tidyr)
+library(jsonlite)
 library(ggplot2)
+library(ggthemes)
 library(plotly)
 
 raw_data <- read_csv("data/olympics_data.csv") 
@@ -23,7 +26,7 @@ app$layout(
                        list(label = 'Silver', value = 'Silver'),
                        list(label = 'Bronze', value = 'Bronze')),
         value = list('Gold', 'Silver', 'Bronze')),
-      dccGraph(id='bubble', figure = NULL),
+      dccGraph(id='bubble'),
       dccSlider(
         id = 'medals_by_country',
         value = 2000,
@@ -51,13 +54,13 @@ app$callback(
     }
     
     if (length(medal_type) > 0) {
-      temp <- temp %>% 
-        drop_na() %>%
+      temp <- drop_na(temp) %>%
         filter(medal %in% medal_type)
     } else {
-      temp <- temp %>% drop_na()
+      temp <- drop_na(temp)
     }
-    return(temp)
+    
+    temp %>% toJSON()
   }
 )
 
@@ -66,7 +69,7 @@ app$callback(
   list(input('filter_data', 'data'),
        input('medals_by_country', 'value')),
   function(data, sel_year){
-    temp <- data
+    temp <- fromJSON(data, simplifyDataFrame = TRUE)
     sel_year <- as.integer(sel_year)
     
     temp <- temp %>%
@@ -75,26 +78,28 @@ app$callback(
     athletes <- raw_data %>%
       filter(year == sel_year)
     
-    graph_data <- athletes %>%
+    athletes <- athletes %>%
       group_by(noc) %>%
       summarise(athletes = n_distinct(id))
     
-    graph_data <- temp %>%
+    medals <- temp %>%
       group_by(noc) %>%
-      summarise(metal_count = nrow(medal))
+      summarise(metal_count = n())
+    
+    graph_data <- merge(athletes, medals)
     
     graph_data <- graph_data %>%
       mutate(ave_metals = metal_count / athletes)
     
-    p <- graph_data %>%
-      ggplot() +
-      geom_point(x = athletes,
-                 y = ave_metals,
-                 size = metal_count) +
-      ggthemes::scale_color_tableau()
+    p <- ggplot(graph_data) +
+      geom_point(aes(x = athletes,
+                     y = ave_metals,
+                     size = metal_count),
+                 stat = "identity") +
+      scale_color_tableau()
     
     ggplotly(p + aes(text = noc), tooltip = 'noc')
   }
 )
 
-app$run_server(host = '0.0.0.0')
+app$run_server(debug = T, host = '0.0.0.0')
