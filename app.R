@@ -46,16 +46,16 @@ app$callback(
     temp <- raw_data
     
     if (sel_season != 'all') {
-      temp <- temp |>
+      temp <- temp %>%
         filter(season == sel_season)
     }
     
     if (length(medal_type) > 0) {
-      temp <- temp |> 
-        drop_na() |>
+      temp <- temp %>% 
+        drop_na() %>%
         filter(medal %in% medal_type)
     } else {
-      temp <- temp |> drop_na()
+      temp <- temp %>% drop_na()
     }
     return(temp)
   }
@@ -69,24 +69,24 @@ app$callback(
     temp <- data
     sel_year <- as.integer(sel_year)
     
-    temp <- temp |>
+    temp <- temp %>%
       filter(year == sel_year)
     
-    athletes <- raw_data |>
+    athletes <- raw_data %>%
       filter(year == sel_year)
     
-    graph_data <- athletes |>
-      group_by(noc) |>
+    graph_data <- athletes %>%
+      group_by(noc) %>%
       summarise(athletes = n_distinct(id))
     
-    graph_data <- temp |>
-      group_by(noc) |>
+    graph_data <- temp %>%
+      group_by(noc) %>%
       summarise(metal_count = nrow(medal))
     
-    graph_data <- graph_data |>
+    graph_data <- graph_data %>%
       mutate(ave_metals = metal_count / athletes)
     
-    p <- graph_data |>
+    p <- graph_data %>%
       ggplot() +
       geom_point(x = athletes,
                  y = ave_metals,
@@ -97,4 +97,4 @@ app$callback(
   }
 )
 
-app$run_server(debug = T, host = '0.0.0.0')
+app$run_server(host = '0.0.0.0')
