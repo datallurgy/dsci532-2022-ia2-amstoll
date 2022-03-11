@@ -98,7 +98,7 @@ app$callback(
                  stat = "identity") +
       scale_color_tableau()
     
-    ggplotly(p + aes(text = noc), tooltip = 'noc')
+    ggplotly(p + aes(text = noc), tooltip = list('noc', 'size'))
   }
 )
 
